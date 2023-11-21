@@ -40,7 +40,7 @@ st.caption(description)
 #st.write(instructions)
 
 # Display the image in the sidebar
-logo_filepath = "Vertical_VT_Full_Color_RGB.png"
+logo_filepath = "Mollie2.jpg"
 image = Image.open(logo_filepath)
 st.sidebar.image(image)
 
