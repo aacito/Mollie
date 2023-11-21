@@ -1,4 +1,8 @@
 
+pip uninstall openai
+pip install --upgrade pip
+pip install openai
+
 import openai
 import streamlit as st
 import time
