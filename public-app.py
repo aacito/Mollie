@@ -85,7 +85,7 @@ def process_message_with_citations(message):
 
 
 # Initiate Chat
-st.session_state.start_chat = True
+#st.session_state.start_chat = True
 
 # Create a thread once and store its ID in session state
 thread = client.beta.threads.create()
