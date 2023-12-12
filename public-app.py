@@ -1,12 +1,3 @@
-
-import streamlit as st
-import openai
-import time
-from PIL import Image
-
-
-
-
 from openai import OpenAI
 import streamlit as st
 import time
@@ -14,7 +5,7 @@ from PIL import Image
 import re
 
 # Configure the logo filepath
-logo_filepath = "Vertical_VT_Full_Color_RGB.png"
+logo_filepath = "Mollie2.jpg"
 
 
 # Configure site title, icon, and other
@@ -32,7 +23,7 @@ tips = ""
 chat_box_text = "Type your questions here."
 footer_text = 'Last Updated 2023-11-20'
 
-error_message = "ERROR: Please enter your OpenAI API key AND click \'Start New Chat\' to get started."        
+error_message = "ERROR: Please click \'Start New Chat\' to get started."        
 
 # Set up the Streamlit page with a title and icon
 st.set_page_config(page_title= site_title, page_icon= site_icon)
@@ -63,9 +54,6 @@ if "THREAD_ID" not in st.session_state:
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
-
-
-
 
 if st.sidebar.button("Start New Chat"):
     thread = client.beta.threads.create()
