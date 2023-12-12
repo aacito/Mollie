@@ -4,6 +4,19 @@ import openai
 import time
 from PIL import Image
 
+
+
+
+from openai import OpenAI
+import streamlit as st
+import time
+from PIL import Image
+import re
+
+# Configure the logo filepath
+logo_filepath = "Vertical_VT_Full_Color_RGB.png"
+
+
 # Configure site title, icon, and other
 site_title = "Mollie 2"
 site_icon = "🐶"
@@ -11,85 +24,66 @@ site_icon = "🐶"
 # Set the page title, description, and other text
 page_title = "Mollie 2"
 description = "I'm Mollie, your TA for ACIS 5194: Financial Statement Analysis. Woof!"
-instructions = 'Type your questions here.'
 as_of = ''
 other_text = '' # Optional sidebar text
+instructions = "Please click on \'Start New Chat\' button on the left sidebar to get started."
+
+tips = ""
+chat_box_text = "Type your questions here."
 footer_text = 'Last Updated 2023-11-20'
 
-# Initialize the OpenAI client
-client = openai
+error_message = "ERROR: Please enter your OpenAI API key AND click \'Start New Chat\' to get started."        
 
 # Set up the Streamlit page with a title and icon
 st.set_page_config(page_title= site_title, page_icon= site_icon)
 
-#filepath = '' # leave blank when posting to Github
-
-if st.secrets:
-    if 'ASSISTANT_ID' in st.secrets:
-        assistant_id = st.secrets['ASSISTANT_ID']
-
-    if 'OPENAI_API_KEY' in st.secrets:
-        openai.api_key = st.secrets['OPENAI_API_KEY']
-
-
 # Main chat interface setup
 st.markdown(f"<h1 style='color: rgba(134, 31, 65, 1);'>{page_title}</h1>", unsafe_allow_html=True)
 st.caption(description)
-#st.caption(as_of)
-
-#st.write(instructions)
+st.markdown(f"<h3 style='color: rgba(134, 31, 65, 1);'>Instructions</h3>", unsafe_allow_html=True)
+st.markdown(instructions)
+st.markdown(tips)
+st.divider()
 
 # Display the image in the sidebar
-logo_filepath = "Mollie2.jpg"
 image = Image.open(logo_filepath)
 st.sidebar.image(image)
+st.sidebar.divider()
 
-if other_text != "":
-    st.sidebar.write(other_text)
+# Set OpenAI contants 
+if st.secrets:
+    if 'ASSISTANT_ID' in st.secrets:
+        ASSISTANT_ID = st.secrets['ASSISTANT_ID']
+    if 'OPENAI_API_KEY' in st.secrets:
+        OPENAI_API_KEY = st.secrets['OPENAI_API_KEY']
+    client = OpenAI(api_key=OPENAI_API_KEY)
 
-# Initialize session state variables for file IDs and chat control
-if "file_id_list" not in st.session_state:
-    st.session_state.file_id_list = []
+if "THREAD_ID" not in st.session_state:
+    st.session_state.THREAD_ID = None
 
-if "start_chat" not in st.session_state:
-    st.session_state.start_chat = False
-
-if "thread_id" not in st.session_state:
-    st.session_state.thread_id = None
-
-# Define the function to process messages with citations
-def process_message_with_citations(message):
-    """Extract content and annotations from the message and format citations as footnotes."""
-    message_content = message.content[0].text
-    annotations = message_content.annotations if hasattr(message_content, 'annotations') else []
-    citations = []
-
-    # Iterate over the annotations and add footnotes
-    for index, annotation in enumerate(annotations):
-        # Replace the text with a footnote
-        message_content.value = message_content.value.replace(annotation.text, f' [{index + 1}]')
-
-        # Gather citations based on annotation attributes
-        if (file_citation := getattr(annotation, 'file_citation', None)):
-            # Retrieve the cited file details (dummy response here since we can't call OpenAI)
-            cited_file = {'filename': 'cited_document.pdf'}  # This should be replaced with actual file retrieval
-            citations.append(f'[{index + 1}] {file_citation.quote} from {cited_file["filename"]}')
-        elif (file_path := getattr(annotation, 'file_path', None)):
-            # Placeholder for file download citation
-            cited_file = {'filename': 'downloaded_document.pdf'}  # This should be replaced with actual file retrieval
-            citations.append(f'[{index + 1}] Click [here](#) to download {cited_file["filename"]}')  # The download link should be replaced with the actual download path
-
-    # Add footnotes to the end of the message content
-    full_response = message_content.value + '\n\n' + '\n'.join(citations)
-    return full_response
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
 
-# Initiate Chat
-#st.session_state.start_chat = True
 
-# Create a thread once and store its ID in session state
-thread = client.beta.threads.create()
-st.session_state.thread_id = thread.id
+
+if st.sidebar.button("Start New Chat"):
+    thread = client.beta.threads.create()
+    st.session_state.THREAD_ID = thread.id
+    st.session_state.messages = []
+
+
+# Create a sidebar for API key configuration and additional features
+st.sidebar.divider()
+st.sidebar.markdown(f"<h3 style='color: rgba(134, 31, 65, 1);'>Tips and Tricks:</h3>", unsafe_allow_html=True)
+st.sidebar.markdown(tips)
+st.sidebar.divider()
+
+feedback_text = "This app is a prototype and still a work-in-process. Please help improve it by sharing your feedback [here](https://forms.gle/3DfPAG86RyepVXMo8)."
+
+st.sidebar.markdown(feedback_text)
+
+st.sidebar.divider()
 
 st.markdown("""
     <style>
@@ -102,51 +96,47 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
+# Display existing messages in the chat
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.write(message["content"])
 
-# Only show the chat interface if the chat has been started
-if st.session_state.start_chat:
-    # Initialize the model and messages list if not already in session state
-    if "openai_model" not in st.session_state:
-        st.session_state.openai_model = "gpt-4-1106-preview"
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-
-    # Display existing messages in the chat
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-
-    # Chat input for the user
-    if prompt := st.chat_input(instructions):
+# Chat input for the user
+if prompt := st.chat_input(chat_box_text):
+    if st.session_state.THREAD_ID is None:
+        st.markdown(f"<h3 style='color: rgba(232, 119, 49, 1);'>{error_message}</h3>", unsafe_allow_html=True)
+    else:
+        format_prompt = prompt.replace("$", "\\$")
         # Add user message to the state and display it
-        st.session_state.messages.append({"role": "user", "content": prompt})
+        st.session_state.messages.append({"role": "user", "content": format_prompt})
         with st.chat_message("user"):
-            st.markdown(prompt)
+            st.write(str(format_prompt))
 
         # Add the user's message to the existing thread
         client.beta.threads.messages.create(
-            thread_id=st.session_state.thread_id,
+            thread_id = st.session_state.THREAD_ID,
             role="user",
             content=prompt
         )
 
         # Create a run with additional instructions
         run = client.beta.threads.runs.create(
-            thread_id=st.session_state.thread_id,
-            assistant_id=assistant_id
+            thread_id = st.session_state.THREAD_ID,
+            assistant_id=ASSISTANT_ID
         )
 
         # Poll for the run to complete and retrieve the assistant's messages
         while run.status != 'completed':
             time.sleep(.5)
             run = client.beta.threads.runs.retrieve(
-                thread_id=st.session_state.thread_id,
+                thread_id = st.session_state.THREAD_ID,
                 run_id=run.id
             )
 
         # Retrieve messages added by the assistant
         messages = client.beta.threads.messages.list(
-            thread_id=st.session_state.thread_id
+            thread_id =  st.session_state.THREAD_ID, 
+            order="asc"
         )
 
         # Process and display assistant messages
@@ -155,12 +145,11 @@ if st.session_state.start_chat:
             if message.run_id == run.id and message.role == "assistant"
         ]
         for message in assistant_messages_for_run:
-            full_response = process_message_with_citations(message)
-            st.session_state.messages.append({"role": "assistant", "content": full_response})
+            response = message.content[0].text.value
+            st.session_state.messages.append({"role": "assistant", "content": response})
             with st.chat_message("assistant"):
-                st.markdown(full_response, unsafe_allow_html=True)
-else:
-    st.write("Something is wrong. Please try again later.")
+                st.markdown(f"{response}", unsafe_allow_html=True)
+
 
 
 def footer(text):
@@ -181,6 +170,5 @@ def footer(text):
     </div>
     """
     st.sidebar.markdown(footer_html, unsafe_allow_html=True)
-
 
 footer(footer_text)
