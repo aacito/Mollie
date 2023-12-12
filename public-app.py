@@ -61,18 +61,6 @@ if st.sidebar.button("Start New Chat"):
     st.session_state.messages = []
 
 
-# Create a sidebar for API key configuration and additional features
-st.sidebar.divider()
-st.sidebar.markdown(f"<h3 style='color: rgba(134, 31, 65, 1);'>Tips and Tricks:</h3>", unsafe_allow_html=True)
-st.sidebar.markdown(tips)
-st.sidebar.divider()
-
-feedback_text = "This app is a prototype and still a work-in-process. Please help improve it by sharing your feedback [here](https://forms.gle/3DfPAG86RyepVXMo8)."
-
-st.sidebar.markdown(feedback_text)
-
-st.sidebar.divider()
-
 st.markdown("""
     <style>
     .element-container .stTextInput input::placeholder {
